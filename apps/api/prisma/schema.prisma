@@ -1,0 +1,159 @@
+generator client {
+  provider        = "prisma-client-js"
+  output          = "../src/generated/client"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Tenant {
+  id          String    @id @default(uuid())
+  name        String    // Nombre de la empresa (e.g., "Mi Barbería" o "Spa Relax")
+  description String?   // Descripción opcional
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  users       User[]
+  professionals Professional[]
+  services    Service[]
+  locations   Location[]
+  appointments Appointment[]
+  payments    Payment[]
+
+  @@map("tenants")
+}
+
+model User {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  name      String
+  password  String    // Contraseña hasheada
+  role      Role      @default(CLIENT)  // Enum: ADMIN, PROFESSIONAL, CLIENT
+  tenantId  String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  tenant    Tenant    @relation(fields: [tenantId], references: [id])
+  appointments Appointment[]  // Como cliente
+
+  @@map("users")
+}
+
+enum Role {
+  ADMIN        // Admin del tenant
+  PROFESSIONAL // Proveedor de servicio
+  CLIENT       // Usuario final que reserva
+}
+
+model Professional {
+  id        String    @id @default(uuid())
+  name      String    // Nombre del profesional
+  specialty String?   // Especialidad genérica (e.g., "Cuidado personal" o "Consultoría")
+  availability Json?    // Horarios disponibles (JSON para flexibilidad: { "lunes": ["09:00-17:00"] })
+  tenantId  String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  tenant    Tenant    @relation(fields: [tenantId], references: [id])
+  services  Service[] // Servicios que ofrece
+  appointments Appointment[] // Turnos asignados
+
+  @@map("professionals")
+}
+
+model Service {
+  id          String    @id @default(uuid())
+  name        String    // Nombre genérico (e.g., "Sesión estándar", "Tratamiento básico")
+  description String?
+  duration    Int       // Duración en minutos
+  price       Float
+  tenantId    String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  tenant      Tenant    @relation(fields: [tenantId], references: [id])
+  professional Professional? @relation(fields: [professionalId], references: [id])
+  professionalId String?
+  appointments Appointment[]
+
+  @@map("services")
+}
+
+model Location {
+  id        String    @id @default(uuid())
+  name      String    // Nombre genérico (e.g., "Sala 1", "Espacio principal")
+  address   String?
+  capacity  Int?      // Opcional, para rubros que lo necesiten
+  tenantId  String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  tenant    Tenant    @relation(fields: [tenantId], references: [id])
+  appointments Appointment[]
+
+  @@map("locations")
+}
+
+model Appointment {
+  id            String    @id @default(uuid())
+  startTime     DateTime
+  endTime       DateTime
+  status        AppointmentStatus @default(PENDING)
+  notes         String?
+  tenantId      String
+  clientId      String    // User como cliente
+  professionalId String   // Profesional asignado
+  serviceId     String    // Servicio reservado
+  locationId    String?   // Opcional, si se necesita ubicación
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  tenant        Tenant    @relation(fields: [tenantId], references: [id])
+  client        User      @relation(fields: [clientId], references: [id])
+  professional  Professional @relation(fields: [professionalId], references: [id])
+  service       Service   @relation(fields: [serviceId], references: [id])
+  location      Location? @relation(fields: [locationId], references: [id])
+  payment       Payment?
+
+  @@map("appointments")
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+model Payment {
+  id            String    @id @default(uuid())
+  amount        Float
+  method        PaymentMethod
+  status        PaymentStatus @default(PENDING)
+  transactionId String?   // ID de gateway externo (e.g., Stripe)
+  tenantId      String
+  appointmentId String?   @unique // Relación con turno
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  tenant        Tenant    @relation(fields: [tenantId], references: [id])
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
+
+  @@map("payments")
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  TRANSFER
+  OTHER
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  REFUNDED
+  FAILED
+}
