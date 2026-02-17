@@ -7,11 +7,13 @@ import { UpdateServiceDto } from './dto/update-service.dto';
 export class ServicesService {
   constructor(private prisma: PrismaService) {}
 
-  async create(createServiceDto: CreateServiceDto, tenantId: string) {
+  async create(createServiceDto: CreateServiceDto, tenantId: string, userId: string) {
     return this.prisma.service.create({
       data: {
         ...createServiceDto,
         tenantId,
+        createdById: userId,
+        updatedById: userId,
       },
     });
   }
@@ -23,6 +25,16 @@ export class ServicesService {
         professional: {
           select: {
             id: true,
+            name: true,
+          },
+        },
+        createdBy: {
+          select: {
+            name: true,
+          },
+        },
+        updatedBy: {
+          select: {
             name: true,
           },
         },
@@ -40,6 +52,16 @@ export class ServicesService {
             name: true,
           },
         },
+        createdBy: {
+          select: {
+            name: true,
+          },
+        },
+        updatedBy: {
+          select: {
+            name: true,
+          },
+        },
       },
     });
 
@@ -50,12 +72,15 @@ export class ServicesService {
     return service;
   }
 
-  async update(id: string, updateServiceDto: UpdateServiceDto, tenantId: string) {
+  async update(id: string, updateServiceDto: UpdateServiceDto, tenantId: string, userId: string) {
     await this.findOne(id, tenantId);
 
     return this.prisma.service.update({
       where: { id },
-      data: updateServiceDto,
+      data: {
+        ...updateServiceDto,
+        updatedById: userId,
+      },
     });
   }
 

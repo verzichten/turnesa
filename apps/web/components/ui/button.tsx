@@ -25,16 +25,16 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     };
 
     const sizes = {
-      default: "h-14 px-8 py-4 text-sm",
-      sm: "h-10 rounded-xl px-4 text-xs",
-      lg: "h-16 rounded-[1.5rem] px-10 text-base",
-      icon: "h-14 w-14",
+      default: "h-12 px-6 py-3 text-sm",
+      sm: "h-9 rounded-lg px-3 text-xs",
+      lg: "h-14 rounded-xl px-8 text-base",
+      icon: "h-12 w-12",
     };
 
     return (
       <Comp
         className={cn(
-          "inline-flex items-center justify-center rounded-[1.25rem] font-black uppercase tracking-[0.1em] ring-offset-white transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 dark:ring-offset-zinc-950 dark:focus-visible:ring-zinc-300 active:scale-[0.95] hover:translate-y-[-2px] hover:shadow-2xl",
+          "inline-flex items-center justify-center rounded-xl font-black uppercase tracking-[0.1em] ring-offset-white transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 dark:ring-offset-zinc-950 dark:focus-visible:ring-zinc-300 active:scale-[0.95] hover:translate-y-[-1px] hover:shadow-xl",
           variants[variant],
           sizes[size],
           className

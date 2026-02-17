@@ -23,8 +23,9 @@ export class ServicesController {
   create(
     @Body() createServiceDto: CreateServiceDto,
     @GetUser('tenantId') tenantId: string,
+    @GetUser('sub') userId: string,
   ) {
-    return this.servicesService.create(createServiceDto, tenantId);
+    return this.servicesService.create(createServiceDto, tenantId, userId);
   }
 
   @Get()
@@ -42,8 +43,9 @@ export class ServicesController {
     @Param('id') id: string,
     @Body() updateServiceDto: UpdateServiceDto,
     @GetUser('tenantId') tenantId: string,
+    @GetUser('sub') userId: string,
   ) {
-    return this.servicesService.update(id, updateServiceDto, tenantId);
+    return this.servicesService.update(id, updateServiceDto, tenantId, userId);
   }
 
   @Delete(':id')

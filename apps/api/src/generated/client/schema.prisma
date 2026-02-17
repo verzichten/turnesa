@@ -35,8 +35,10 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenant       Tenant        @relation(fields: [tenantId], references: [id])
-  appointments Appointment[] // Como cliente
+  tenant          Tenant        @relation(fields: [tenantId], references: [id])
+  appointments    Appointment[] // Como cliente
+  createdServices Service[]     @relation("ServiceCreatedBy")
+  updatedServices Service[]     @relation("ServiceUpdatedBy")
 
   @@map("users")
 }
@@ -72,6 +74,11 @@ model Service {
   tenantId    String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  createdById String?
+  updatedById String?
+  createdBy   User?   @relation("ServiceCreatedBy", fields: [createdById], references: [id])
+  updatedBy   User?   @relation("ServiceUpdatedBy", fields: [updatedById], references: [id])
 
   tenant         Tenant        @relation(fields: [tenantId], references: [id])
   professional   Professional? @relation(fields: [professionalId], references: [id])

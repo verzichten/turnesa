@@ -11,11 +11,16 @@ import {
   DollarSign,
   MoreVertical,
   Edit,
-  Trash
+  Trash,
+  Info
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { cn } from "@/components/ui/utils";
 import { auth } from "@/utils/auth-client";
+import { EditServiceModal } from "@/components/dashboard/edit-service-modal";
+import { ViewServiceModal } from "@/components/dashboard/view-service-modal";
+import { DropdownMenu, DropdownItem } from "@/components/ui/dropdown";
 
 interface Service {
   id: string;
@@ -23,6 +28,10 @@ interface Service {
   description: string | null;
   duration: number;
   price: number;
+  createdAt: string;
+  updatedAt: string;
+  createdBy?: { name: string };
+  updatedBy?: { name: string };
   professional?: {
     id: string;
     name: string;
@@ -33,44 +42,83 @@ export default function ServiciosPage() {
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [editingService, setEditingService] = useState<Service | null>(null);
+  const [viewingService, setViewingService] = useState<Service | null>(null);
+
+  const fetchServices = async () => {
+    try {
+      const token = auth.getToken();
+      if (!token) throw new Error("No estás autenticado");
+
+      const response = await fetch("/api/services", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) throw new Error("Error al cargar los servicios");
+
+      const result = await response.json();
+      setServices(result.data || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error desconocido");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchServices = async () => {
-      try {
-        const token = auth.getToken();
-        if (!token) throw new Error("No estás autenticado");
-
-        const response = await fetch("/api/services", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!response.ok) throw new Error("Error al cargar los servicios");
-
-        const result = await response.json();
-        // Assuming TransformInterceptor format: { data: T, statusCode: number, message: string }
-        setServices(result.data || []);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Error desconocido");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchServices();
   }, []);
 
+  const handleDelete = async (id: string, name: string) => {
+    if (!window.confirm(`¿Estás seguro de que deseas eliminar el servicio "${name}"?`)) {
+      return;
+    }
+
+    setDeletingId(id);
+    try {
+      const token = auth.getToken();
+      const response = await fetch(`/api/services/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("No se pudo eliminar el servicio");
+      }
+
+      setServices((prev) => prev.filter((s) => s.id !== id));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Ocurrió un error al eliminar");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const filteredServices = services.filter((service) =>
+    service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    service.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const formatPrice = (price: number) => {
+    return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex items-center justify-center h-full">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="h-full overflow-y-auto p-6 lg:p-10 space-y-8 animate-in fade-in duration-500 custom-scrollbar">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
@@ -79,7 +127,7 @@ export default function ServiciosPage() {
             Administra los servicios que ofreces a tus clientes.
           </p>
         </div>
-        <Button asChild className="bg-accent text-base hover:bg-accent/90 rounded-2xl px-8 h-12 font-black shadow-lg shadow-accent/20">
+        <Button asChild className="bg-accent text-base hover:bg-accent/90 rounded-xl px-8 h-12 font-black shadow-lg shadow-accent/20">
           <Link href="/dashboard/configuracion/servicios/nuevo">
             <Plus className="h-5 w-5 mr-2" />
             Nuevo Servicio
@@ -94,48 +142,82 @@ export default function ServiciosPage() {
           <input 
             type="text" 
             placeholder="Buscar por nombre o descripción..." 
-            className="w-full bg-[#262D35] border-2 border-border rounded-2xl pl-14 pr-6 py-3 text-sm focus:outline-none focus:border-primary transition-all"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-[#262D35] border-2 border-border rounded-xl pl-14 pr-6 py-3 text-sm focus:outline-none focus:border-primary transition-all text-white"
           />
         </div>
-        <Button variant="outline" className="rounded-2xl border-border h-auto py-3">
+        <Button variant="outline" className="rounded-xl border-border h-auto py-3">
           <Settings2 className="h-4 w-4 mr-2" />
           Filtros
         </Button>
       </div>
 
       {error && (
-        <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-500 text-sm font-medium">
+        <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-sm font-medium">
           {error}
         </div>
       )}
 
       {/* Services List / Table */}
-      {services.length === 0 ? (
-        <Card className="flex flex-col items-center justify-center p-20 text-center bg-[#262D35] border-dashed border-2 border-border rounded-[3rem]">
-          <div className="h-24 w-24 bg-primary/10 rounded-[2rem] flex items-center justify-center mb-6">
+      {filteredServices.length === 0 ? (
+        <Card className="flex flex-col items-center justify-center p-20 text-center bg-[#262D35] border-dashed border-2 border-border rounded-2xl">
+          <div className="h-24 w-24 bg-primary/10 rounded-2xl flex items-center justify-center mb-6">
             <Layers className="h-12 w-12 text-primary" />
           </div>
-          <h2 className="text-2xl font-black text-white mb-3">No hay servicios registrados</h2>
+          <h2 className="text-2xl font-black text-white mb-3">
+            {searchQuery ? "No se encontraron resultados" : "No hay servicios registrados"}
+          </h2>
           <p className="text-text-secondary max-w-xs mx-auto mb-10">
-            Comienza por crear tu primer servicio para que tus clientes puedan empezar a agendar turnos.
+            {searchQuery 
+              ? `No pudimos encontrar nada que coincida con "${searchQuery}".`
+              : "Comienza por crear tu primer servicio para que tus clientes puedan empezar a agendar turnos."
+            }
           </p>
-          <Button asChild className="bg-primary hover:bg-primary/90 rounded-2xl px-10 h-12 font-black">
-            <Link href="/dashboard/configuracion/servicios/nuevo">
-              Crear mi primer servicio
-            </Link>
-          </Button>
+          {!searchQuery && (
+            <Button asChild className="bg-primary hover:bg-primary/90 rounded-xl px-10 h-12 font-black">
+              <Link href="/dashboard/configuracion/servicios/nuevo">
+                Crear mi primer servicio
+              </Link>
+            </Button>
+          )}
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {services.map((service) => (
-            <Card key={service.id} className="p-6 bg-[#262D35] border-border hover:border-primary/50 transition-all group">
+          {filteredServices.map((service) => (
+            <Card key={service.id} className={cn(
+              "p-6 bg-[#262D35] border-border hover:border-primary/50 transition-all group",
+              deletingId === service.id && "opacity-50 pointer-events-none"
+            )}>
               <div className="flex justify-between items-start mb-4">
                 <div className="h-12 w-12 bg-accent/10 rounded-xl flex items-center justify-center">
                   <Layers className="h-6 w-6 text-accent" />
                 </div>
-                <Button variant="ghost" size="icon" className="rounded-full text-text-secondary hover:text-white">
-                  <MoreVertical className="h-5 w-5" />
-                </Button>
+                
+                <DropdownMenu 
+                  trigger={
+                    <Button variant="ghost" size="icon" className="rounded-full text-text-secondary hover:text-white hover:bg-white/5">
+                      <MoreVertical className="h-5 w-5" />
+                    </Button>
+                  }
+                >
+                  <DropdownItem onClick={() => setViewingService(service)}>
+                    <Info className="h-4 w-4 text-accent" />
+                    Ver Detalles
+                  </DropdownItem>
+                  <DropdownItem onClick={() => setEditingService(service)}>
+                    <Edit className="h-4 w-4 text-primary" />
+                    Editar
+                  </DropdownItem>
+                  <hr className="border-border my-1 mx-2" />
+                  <DropdownItem 
+                    variant="danger" 
+                    onClick={() => handleDelete(service.id, service.name)}
+                  >
+                    <Trash className="h-4 w-4" />
+                    Eliminar
+                  </DropdownItem>
+                </DropdownMenu>
               </div>
               
               <h3 className="text-xl font-black mb-2 line-clamp-1">{service.name}</h3>
@@ -151,21 +233,31 @@ export default function ServiciosPage() {
                   </div>
                   <div className="flex items-center text-xs font-bold text-text-secondary uppercase tracking-tighter">
                     <DollarSign className="h-3.5 w-3.5 mr-0.5 text-accent" />
-                    {service.price}
+                    {formatPrice(service.price)}
                   </div>
                 </div>
-                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-white/5">
-                    <Edit className="h-4 w-4 text-text-secondary hover:text-white" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-red-500/10 hover:text-red-500">
-                    <Trash className="h-4 w-4" />
-                  </Button>
-                </div>
+                {/* Manual buttons removed as they are now in the dropdown */}
               </div>
             </Card>
           ))}
         </div>
+      )}
+
+      {editingService && (
+        <EditServiceModal 
+          service={editingService}
+          isOpen={!!editingService}
+          onClose={() => setEditingService(null)}
+          onSuccess={fetchServices}
+        />
+      )}
+
+      {viewingService && (
+        <ViewServiceModal
+          service={viewingService}
+          isOpen={!!viewingService}
+          onClose={() => setViewingService(null)}
+        />
       )}
     </div>
   );

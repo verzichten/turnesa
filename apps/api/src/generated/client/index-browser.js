@@ -158,6 +158,8 @@ exports.Prisma.ServiceScalarFieldEnum = {
   tenantId: 'tenantId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
+  createdById: 'createdById',
+  updatedById: 'updatedById',
   professionalId: 'professionalId'
 };
 

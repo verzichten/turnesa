@@ -36,7 +36,7 @@ export function SidebarNavItem({ icon: Icon, label, href, subItems }: SidebarNav
     <div
       onClick={toggleOpen}
       className={cn(
-        "flex items-center justify-between px-4 py-3 rounded-2xl transition-all cursor-pointer group",
+        "flex items-center justify-between px-4 py-3 rounded-xl transition-all cursor-pointer group",
         isActive ? "bg-primary text-white" : "hover:bg-white/5 text-[#D1D5DB]"
       )}
     >

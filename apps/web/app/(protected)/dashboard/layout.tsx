@@ -105,7 +105,7 @@ export default function DashboardLayout({
           <div className="pt-6 border-t border-border">
             <button 
               onClick={() => auth.logout()}
-              className="flex items-center gap-4 w-full px-4 py-3 rounded-2xl text-red-400 hover:bg-red-500/10 transition-all"
+              className="flex items-center gap-4 w-full px-4 py-3 rounded-xl text-red-400 hover:bg-red-500/10 transition-all"
             >
               <LogOut className="h-5 w-5" />
               <span className="font-bold text-sm tracking-wide">Cerrar Sesión</span>
@@ -125,7 +125,7 @@ export default function DashboardLayout({
             >
               <Menu className="h-6 w-6 text-accent" />
             </button>
-            <div className="hidden md:flex items-center gap-3 bg-white/5 border border-border px-4 py-2 rounded-2xl w-96">
+            <div className="hidden md:flex items-center gap-3 bg-white/5 border border-border px-4 py-2 rounded-xl w-96">
               <Search className="h-4 w-4 text-text-secondary" />
               <input 
                 type="text" 
@@ -153,7 +153,7 @@ export default function DashboardLayout({
         </header>
 
         {/* Page Content */}
-        <div className="flex-1 overflow-y-auto p-6 lg:p-10">
+        <div className="flex-1">
           {children}
         </div>
       </main>
